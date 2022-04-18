@@ -3,30 +3,43 @@
 #include <unistd.h>
 #include <signal.h>
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
+
     char *newenviron[] = { NULL };
-    if (argc < 0) {
+
+    // printf("%s %s %s", argv[0], argv[1], argv[2]);
+    if (*argv[1] == '-') {
       printf("arg is negative\n");
         exit(1);
     }
     
-    if (argv[0] == "") {
+    if (argc == 1) {
       printf("command is empty\n");
         exit(1);
     }
+
     pid_t rc;
-    switch (rc = fork()) {
-    case -1:
-        perror("fork() failed");
-        exit(1);
-        break;
-    case 0:
-        execve(argv[0], argv, newenviron);
-        break;
-    default:
-        sleep(argc);
-        kill(rc, SIGTERM);
-        break;
+    char *new_arg[argc];
+
+    for (int i = 2; i < argc; i++) {
+        new_arg[i-2] = argv[i];
+    }
+
+    switch(rc = fork()) {
+        case -1:
+            perror("fork() failed");
+            exit(1);
+            break;
+        case 0:
+            execve(argv[2], new_arg, newenviron);
+            break;
+        default:
+            sleep(atoi(argv[1]));
+            // if(sigaction(SIGCHILD) == "0") {
+            //     printf("done");
+            //     exit(0);
+            // }
+            kill(rc, SIGTERM);
+            break;
     }
 }
