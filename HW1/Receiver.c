@@ -10,18 +10,29 @@ void sig_handler(pid_t signum);
 
 
 int main(int argc, char *argv[]) {
+	// Initialize all 31 signal handlers
 	for (int i = 0; i < 32; i++) {
 		signal(i, sig_handler);
 	}
-	kill(getpid(), 5);
+	
+	// Loop until signal 9 is received, in order to keep catching signals
+	while (1) {
+		sleep(1);
+	}
 }
 
 void sig_handler(pid_t signum) {
+
+	// Get the current time
 	time_t now;
     struct tm * timeinfo;
     time(&now);
     timeinfo = localtime(&now);
+
+    // Remove \n from the end of the time string
     char *timestr = asctime(timeinfo);
     timestr[strcspn(timestr, "\n")] = 0;
-    printf("Time:%s Received signal %d (%s)", timestr, signum, MY_SIGNALS[signum]);
+
+    // Print out date and signal received
+    printf("%s Received signal %d (%s)\n", timestr, signum, MY_SIGNALS[signum]);
 }
