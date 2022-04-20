@@ -40,14 +40,14 @@ int main(int argc, char *argv[]) {
         default:
             signal(SIGCHLD, sigchld_handler);
             sleep(atoi(argv[1]));
-            printf("Parent finished first");
+            // printf("Parent finished first");
             kill(rc, SIGTERM);
             break;
     }
 }
 
 void sigchld_handler(pid_t signum) {
-    printf("Child finished first\n");
+    // printf("Child finished first\n");
     kill(signum, SIGTERM);
 }
 
