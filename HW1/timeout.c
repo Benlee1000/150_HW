@@ -13,12 +13,12 @@ int main(int argc, char *argv[]) {
 
     // printf("%s %s %s", argv[0], argv[1], argv[2]);
     if (argc <= 2) {
-      printf("command or seconds are missing\n");
+      perror("command and/or seconds are missing\n");
         exit(1);
     }
 
     else if (atoi(argv[1]) < 0) {
-      printf("arg is negative\n");
+      perror("arg is negative\n");
         exit(1);
     }
     

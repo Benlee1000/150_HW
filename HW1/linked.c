@@ -35,8 +35,31 @@ int main(int argc, char *argv[]) {
 	lstat(argv[1], &file1Info);
 	lstat(argv[2], &file2Info);
 
-	if (file1HardInfo.st_ino == file2HardInfo.st_ino) {
-		printf("These files are linked");
+	// printf("Number of links for file 1, file 2: %ld %ld \n", file1HardInfo.st_nlink, file1HardInfo.st_nlink);
+	// printf("File 1 info: %ld %ld \n", file1Info.st_ino, file1HardInfo.st_ino );
+	// printf("File 2 info: %ld %ld \n", file2Info.st_ino, file2HardInfo.st_ino );
+	
+	// Make sure both aren't soft links or hard links
+	if(!(file1Info.st_ino != file1HardInfo.st_ino && file2Info.st_ino != file2HardInfo.st_ino) && 
+	   !(file1Info.st_ino == file1HardInfo.st_ino && file2Info.st_ino == file2HardInfo.st_ino)) {
+		// File 2 is a hard link to a file, and file 1 is a symbolic link to File 2	
+		if (file1HardInfo.st_nlink != 1 && file1HardInfo.st_ino == file2HardInfo.st_ino && file1Info.st_ino != file2HardInfo.st_ino) {
+			printf("%s is a symbolic link to %s.\n", argv[1], argv[2]);
+		}
+		// Or vice versa
+		else if (file2HardInfo.st_nlink != 1 && file1HardInfo.st_ino == file2HardInfo.st_ino && file1HardInfo.st_ino != file2Info.st_ino) {
+			printf("%s is a symbolic link to %s.\n", argv[2], argv[1]);
+		}
+		else {
+			printf("These files are not linked.\n");
+		}
+	}
+	// Both are hard links or soft links to the same file
+	else if (file1HardInfo.st_ino == file2HardInfo.st_ino) {
+		printf("These files are linked.\n");
+	}
+	else {
+		printf("These files are not linked.\n");
 	}
 }
 
