@@ -18,9 +18,14 @@ int main(int argc, char *argv[]) {
 		perror("Error, too many arguments");
 		exit(1);
 	}
-	else if(!fileExist(argv[1]) || !fileExist(argv[2]))
+	else if(!fileExist(argv[1]))
 	{
-		perror("Error, file 1 or file 2 does not exist.");
+		perror(argv[1]);
+		exit(1);
+	}
+	else if(!fileExist(argv[2]))
+	{
+		perror(argv[2]);
 		exit(1);
 	}
 	
@@ -44,11 +49,11 @@ int main(int argc, char *argv[]) {
 	   !(file1Info.st_ino == file1HardInfo.st_ino && file2Info.st_ino == file2HardInfo.st_ino)) {
 		// File 2 is a hard link to a file, and file 1 is a symbolic link to File 2	
 		if (file1HardInfo.st_nlink != 1 && file1HardInfo.st_ino == file2HardInfo.st_ino && file1Info.st_ino != file2HardInfo.st_ino) {
-			printf("%s is a symbolic link to %s.\n", argv[1], argv[2]);
+			printf("%s is a symbolic link to %s\n", argv[1], argv[2]);
 		}
 		// Or vice versa
 		else if (file2HardInfo.st_nlink != 1 && file1HardInfo.st_ino == file2HardInfo.st_ino && file1HardInfo.st_ino != file2Info.st_ino) {
-			printf("%s is a symbolic link to %s.\n", argv[2], argv[1]);
+			printf("%s is a symbolic link to %s\n", argv[2], argv[1]);
 		}
 		else {
 			printf("These files are not linked.\n");

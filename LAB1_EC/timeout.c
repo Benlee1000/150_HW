@@ -8,9 +8,9 @@
 void sigchld_handler(pid_t signum);
 
 int main(int argc, char *argv[]) {
-
-    char *newenviron[] = { NULL };
-    int i;
+    *env[] = getenv("PATH");
+    //char *env[] = {"HOME=/usr/home", NULL};
+    //char *newenviron[] = { NULL };
 
     // printf("%s %s %s", argv[0], argv[1], argv[2]);
     if (argc <= 2) {
@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
     pid_t rc;
     char *new_arg[argc];
 
-    for (i = 2; i < argc; i++) {
+    for (int i = 2; i < argc; i++) {
         new_arg[i-2] = argv[i];
     }
 
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
             exit(1);
             break;
         case 0:
-            execve(argv[2], new_arg, newenviron);
+            execve(argv[2], cmd, env);
             break;
         default:
             signal(SIGCHLD, sigchld_handler);
@@ -51,3 +51,4 @@ void sigchld_handler(pid_t signum) {
     // printf("Child finished first\n");
     kill(signum, SIGTERM);
 }
+
