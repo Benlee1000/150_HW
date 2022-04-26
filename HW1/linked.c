@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+// cd /mnt/c/users/benny/Desktop/Work/150_HW/HW1
 int fileExist(const char *fileName);
 
 int main(int argc, char *argv[]) {
@@ -35,35 +36,51 @@ int main(int argc, char *argv[]) {
 	struct stat file1HardInfo;
 	struct stat file2HardInfo;
 
-	char *symfile1;
-	char *symfile2;
+	char* symfile1 = malloc((1000)*sizeof(char));
+	char* symfile2 = malloc((1000)*sizeof(char));
 
-	readlink(argv[1], symfile1, 100);
-	readlink(argv[2], symfile2, 100);
+	int end1;
+	int end2;
 
 	stat(argv[1], &file1HardInfo);
 	stat(argv[2], &file2HardInfo);
 	lstat(argv[1], &file1Info);
 	lstat(argv[2], &file2Info);
 
-	printf("Number of links for file 1, file 2: %ld %ld \n", file1HardInfo.st_nlink, file2HardInfo.st_nlink);
-	printf("File 1 info: %ld %ld \n", file1Info.st_ino, file1HardInfo.st_ino );
-	printf("File 2 info: %ld %ld \n", file2Info.st_ino, file2HardInfo.st_ino );
-	printf("File 1, File2: %s %s\n", symfile1, symfile2);
-
+	// printf("File 1 info: %ld %ld \n", file1Info.st_ino, file1HardInfo.st_ino );
+	// printf("File 2 info: %ld %ld \n", file2Info.st_ino, file2HardInfo.st_ino );
+	
 	// Make sure both aren't soft links or hard links
 	if(!(file1Info.st_ino != file1HardInfo.st_ino && file2Info.st_ino != file2HardInfo.st_ino) && 
 	   !(file1Info.st_ino == file1HardInfo.st_ino && file2Info.st_ino == file2HardInfo.st_ino)) {
 		// File 2 is a hard link to a file, and file 1 is a symbolic link to File 2	
 		if (file1HardInfo.st_ino == file2HardInfo.st_ino && file1Info.st_ino != file2HardInfo.st_ino) {
-			printf("%s is a symbolic link to %s\n", argv[1], argv[2]);
+			end1 = readlink(argv[1], symfile1, 100);
+			symfile1[end1] = 0;
+			// printf("File 1 sym, File 2: %s %s\n", symfile1, argv[2]);
+			// Make sure the symblic link directly links to the hardlink
+			if (strcmp(symfile1, argv[2]) == 0) {
+				printf("%s is a symbolic link to %s\n", argv[1], argv[2]);
+			}
+			else {
+				printf("These files are linked.\n");
+			}
 		}
 		// Or vice versa
 		else if (file1HardInfo.st_ino == file2HardInfo.st_ino && file1HardInfo.st_ino != file2Info.st_ino) {
-			printf("%s is a symbolic link to %s\n", argv[2], argv[1]);
+			end2 = readlink(argv[2], symfile2, 100);
+			symfile2[end2] = 0;
+			// printf("File 1, File 2 sym: %s %s\n", argv[1], symfile2);
+			// Make sure the symblic link directly links to the hardlink
+			if (strcmp(symfile2, argv[1]) == 0) {
+				printf("%s is a symbolic link to %s\n", argv[2], argv[1]);
+			}
+			else {
+				printf("These files are linked.\n");
+			}
 		}
 		else {
-			printf("These files are not linked (1).\n");
+			printf("These files are not linked.\n");
 		}
 	}
 	// Both are hard links or soft links to the same file
@@ -73,6 +90,8 @@ int main(int argc, char *argv[]) {
 	else {
 		printf("These files are not linked.\n");
 	}
+	free(symfile1);
+	free(symfile2);
 }
 
 int fileExist (const char* filename)
