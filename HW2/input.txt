@@ -1,0 +1,3 @@
+editor	    		5	    	0.555
+compiler	    	40	    	0.25
+adventure	    	30	    	0.72
