@@ -6,9 +6,10 @@
 #include <string.h>
 
 // cd /mnt/c/users/benny/Desktop/Work/150_HW/HW2
+int isgraph(int argument);
 
 struct Process {
-	char name[10];
+	//char *name = (char *) malloc(sizeof(char) * 11);
 	int priority;
 	int run_time;
 	int remaining_time;
@@ -30,9 +31,9 @@ struct Process * read_input(char *file_name) {
 	int count = 0;
 	int count_decimal;
 	char c;
-	char str[60];
-	char *newString;
-	char *process_Name;
+	char *str = (char*) malloc(61 * sizeof(char));
+	//char *newString = (char*) malloc(61 * sizeof(char));
+	char *process_Name = (char*) malloc(11 * sizeof(char));;
 	int runtime;
 	float prob_to_block;
 
@@ -56,6 +57,31 @@ struct Process * read_input(char *file_name) {
 		fgets(str, 60, fp);
 		printf("%s", str);
 
+		// Separate the line into the 3 inputs
+		 char ** inputs = (char **) calloc(2, sizeof(char*));
+		 for(int l = 0; l < 2; l++)
+		 {
+		 	inputs[l] = (char*) calloc(20, sizeof(char));
+		 }
+
+
+
+		int j = 0;
+		for(int k = 0; k < strlen(str); k++) {
+			if(isgraph(str[k])) {
+				strncat(inputs[j], &str[k], 1);
+			}
+			if(isgraph(str[k-1])  && isgraph(str[k]) ) {
+				j = j + 1;
+			}
+		}
+
+		for (int p = 0; p < 3; p++) {
+			printf("Input %d: %s", p, inputs[p]);
+		}
+
+
+		/*
 		newString = strtok(str, " ");
 		process_Name = newString;
 		printf("%s is the process name", process_Name);
@@ -67,7 +93,7 @@ struct Process * read_input(char *file_name) {
 		newString = strtok(str, " ");
 		prob_to_block = atof(newString);
 		printf("%f is the percentage\n", prob_to_block);
-
+		*/
 
 		/*
 		if(strlen(process_Name) > 10){
@@ -76,7 +102,7 @@ struct Process * read_input(char *file_name) {
 
 		if(runtime < 1){
 			perror("runtime is not 1 or greater");
-		}*/
+		}
 
 
 		prob_to_block = abs(prob_to_block);
@@ -96,6 +122,7 @@ struct Process * read_input(char *file_name) {
 		{
 			perror("the probability to block is not between 0 and 1");
 		}
+		*/
 	}
 
 }
