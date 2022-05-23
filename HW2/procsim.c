@@ -9,7 +9,7 @@
 int isgraph(int argument);
 
 struct Process {
-	//char *name = (char *) malloc(sizeof(char) * 11);
+	char name[10];
 	int priority;
 	int run_time;
 	int remaining_time;
@@ -32,9 +32,6 @@ struct Process * read_input(char *file_name) {
 	int count_decimal;
 	char c;
 	char *str = (char*) malloc(61 * sizeof(char));
-	//char *newString = (char*) malloc(61 * sizeof(char));
-	char *process_Name = (char*) malloc(11 * sizeof(char));;
-	int runtime;
 	float prob_to_block;
 
 	fp = fopen(file_name, "r");
@@ -55,74 +52,77 @@ struct Process * read_input(char *file_name) {
 
 	for(int i = 0; i < count; i++){
 		fgets(str, 60, fp);
-		printf("%s", str);
+		// printf("%s", str);
 
-		// Separate the line into the 3 inputs
-		 char ** inputs = (char **) calloc(2, sizeof(char*));
-		 for(int l = 0; l < 2; l++)
+		 char ** inputs = (char **) calloc(3, sizeof(char*));
+		 for(int l = 0; l < 3; l++)
 		 {
 		 	inputs[l] = (char*) calloc(20, sizeof(char));
 		 }
-
-
-
+		
+		// Separate the line into the 3 inputs
 		int j = 0;
 		for(int k = 0; k < strlen(str); k++) {
+			// Add the current character to the given input
 			if(isgraph(str[k])) {
 				strncat(inputs[j], &str[k], 1);
 			}
-			if(isgraph(str[k-1])  && isgraph(str[k]) ) {
+			// Increment the input on only the first whitespace after an entry
+			if(k > 0 && isgraph(str[k-1]) && !(isgraph(str[k]))) {
 				j = j + 1;
 			}
 		}
-
+	
 		for (int p = 0; p < 3; p++) {
-			printf("Input %d: %s", p, inputs[p]);
+			printf("Input %d: %s\n", p, inputs[p]);
 		}
 
-
-		/*
-		newString = strtok(str, " ");
-		process_Name = newString;
-		printf("%s is the process name", process_Name);
-
-		newString = strtok(str, " ");
-		runtime = atoi(newString);
-		printf("%d is the runtime", runtime);
-
-		newString = strtok(str, " ");
-		prob_to_block = atof(newString);
-		printf("%f is the percentage\n", prob_to_block);
-		*/
-
-		/*
-		if(strlen(process_Name) > 10){
+		
+		if(strlen(inputs[0]) > 10){
 			perror("process name is too large");
+			exit(1);
 		}
 
-		if(runtime < 1){
+		if(atoi(inputs[1]) < 1){
 			perror("runtime is not 1 or greater");
+			exit(1);
 		}
 
+		if(atoi(inputs[2]) > 1 || atoi(inputs[2]) < 0)
+		{
+			perror("the probability to block is not between 0 and 1");
+			exit(1);
+		}
 
-		prob_to_block = abs(prob_to_block);
-		prob_to_block = prob_to_block - prob_to_block;
+		
+		/*prob_to_block = abs(atof(inputs[2]));
 		while(prob_to_block != 0){
 			prob_to_block = prob_to_block * 10;
 			count_decimal = count_decimal + 1;
 			prob_to_block = prob_to_block - prob_to_block;
-		}
+		}*/
 
-		if(count_decimal != 2)
+		float atoied_number = atof(inputs[2]);
+		int count5 = 0;
+		do{
+			++count5;
+			atoied_number = atoied_number * 10;
+		}while((int) atoied_number % 10 != 0);
+			count5 = count5 - 1;
+			
+
+		if(count5 > 2)
 		{
 			perror("the probability to block is not within 2 decimal places");
+			exit(1);
 		}
+		
+		// Populate the process struct
+		printf("%s", inputs[0]);
+		//processes[i].name = inputs[0];
+		processes[i].run_time = atoi(inputs[1]);
+		processes[i].prob_to_block = atof(inputs[2]);
 
-		if(prob_to_block > 1 && prob_to_block < 0)
-		{
-			perror("the probability to block is not between 0 and 1");
-		}
-		*/
 	}
 
 }
