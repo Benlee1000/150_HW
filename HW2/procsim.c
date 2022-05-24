@@ -9,7 +9,7 @@
 int isgraph(int argument);
 
 struct Process {
-	char name[10];
+	char *name;
 	int priority;
 	int run_time;
 	int remaining_time;
@@ -26,7 +26,21 @@ struct Process {
 
 
 
-struct Process * read_input(char *file_name) {
+ struct Process* createProcess(struct Process* t, char *name_in, int run_time_in, float prob_to_block_in) {
+
+  // Allocate memory for the pointers themselves and other elements
+  // in the struct.
+  t = malloc(sizeof(struct Process));
+
+  t->name = strdup(name_in);
+  t->run_time = run_time_in;
+  t->prob_to_block = prob_to_block_in;
+  return t;
+
+  
+}
+
+void read_input(char *file_name) {
 	FILE *fp;
 	int count = 0;
 	int count_decimal;
@@ -48,7 +62,7 @@ struct Process * read_input(char *file_name) {
 
 	rewind(fp);
 
-	struct Process processes[count];
+	struct Process* processes[count];
 
 	for(int i = 0; i < count; i++){
 		fgets(str, 60, fp);
@@ -73,9 +87,9 @@ struct Process * read_input(char *file_name) {
 			}
 		}
 	
-		for (int p = 0; p < 3; p++) {
-			printf("Input %d: %s\n", p, inputs[p]);
-		}
+		// for (int p = 0; p < 3; p++) {
+		// 	printf("Input %d: %s\n", p, inputs[p]);
+		// }
 
 		
 		if(strlen(inputs[0]) > 10){
@@ -94,14 +108,6 @@ struct Process * read_input(char *file_name) {
 			exit(1);
 		}
 
-		
-		/*prob_to_block = abs(atof(inputs[2]));
-		while(prob_to_block != 0){
-			prob_to_block = prob_to_block * 10;
-			count_decimal = count_decimal + 1;
-			prob_to_block = prob_to_block - prob_to_block;
-		}*/
-
 		float atoied_number = atof(inputs[2]);
 		int count5 = 0;
 		do{
@@ -118,17 +124,20 @@ struct Process * read_input(char *file_name) {
 		}
 		
 		// Populate the process struct
-		printf("%s", inputs[0]);
-		//processes[i].name = inputs[0];
-		processes[i].run_time = atoi(inputs[1]);
-		processes[i].prob_to_block = atof(inputs[2]);
+		processes[i] = createProcess(processes[i], inputs[0], atoi(inputs[1]), atof(inputs[2]));
 
+		printf("%s\n", processes[i]->name);
+		printf("%d\n", processes[i]->run_time);
+		printf("%.2f\n", processes[i]->prob_to_block);
 	}
+
+	///return processes;
 
 }
 
 int main(int argc, char *argv[]) {
  
+ 	//struct Process *processes;
 	read_input("input.txt");
 
 }
