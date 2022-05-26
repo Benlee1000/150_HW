@@ -7,8 +7,11 @@
 
 // cd /mnt/c/users/benny/Desktop/Work/150_HW/HW2
 int isgraph(int argument);
+void srand(unsigned int seed);
 
-struct Process {
+int process_count;
+
+typedef struct {
 	char *name;
 	int priority;
 	int run_time;
@@ -19,34 +22,50 @@ struct Process {
 	int number_of_blocks;
 	int io_time;
 
-
 	struct Process *next;
 	struct Process *prev;
-};
+
+} Process;
+
+typedef struct {
+	int time_busy;
+	int time_idle;
+	double utilization;
+	int dispatches;
+	double throughput;
+
+} CPU;
+
+typedef struct {
+	int time_busy;
+	int time_idle;
+	double utilization;
+	int started;
+	double throughput;
+
+} ioDevice;
 
 
-
- struct Process* createProcess(struct Process* t, char *name_in, int run_time_in, float prob_to_block_in) {
+Process createProcess(Process t, char *name_in, int run_time_in, float prob_to_block_in) {
 
   // Allocate memory for the pointers themselves and other elements
   // in the struct.
-  t = malloc(sizeof(struct Process));
+  //t = malloc(sizeof(Process));
 
-  t->name = strdup(name_in);
-  t->run_time = run_time_in;
-  t->prob_to_block = prob_to_block_in;
-  return t;
-
+  t.name = strdup(name_in);
+  t.run_time = run_time_in;
+  t.prob_to_block = prob_to_block_in;
   
+  t.next = malloc(sizeof(Process));
+  t.prev = malloc(sizeof(Process));
+
+  return t;
 }
 
-void read_input(char *file_name) {
+int get_count(char *file_name) {
 	FILE *fp;
 	int count = 0;
-	int count_decimal;
 	char c;
-	char *str = (char*) malloc(61 * sizeof(char));
-	float prob_to_block;
 
 	fp = fopen(file_name, "r");
 
@@ -59,14 +78,26 @@ void read_input(char *file_name) {
        if (c == '\n') // Increment count if this character is newline
            count = count + 1;
 	}
+	fclose(fp);
 
-	rewind(fp);
+	process_count = count;
+}
 
-	struct Process* processes[count];
+	
+void read_input(char *file_name, Process processes[process_count]) {
+	FILE *fp;
+	int count_decimal;
+	char *str = (char*) malloc(61 * sizeof(char));
+	float prob_to_block;
 
-	for(int i = 0; i < count; i++){
+	fp = fopen(file_name, "r");
+
+	if(fp == NULL){
+		perror("File cannot be opened \n");
+	}
+
+	for(int i = 0; i < process_count; i++){
 		fgets(str, 60, fp);
-		// printf("%s", str);
 
 		 char ** inputs = (char **) calloc(3, sizeof(char*));
 		 for(int l = 0; l < 3; l++)
@@ -126,18 +157,56 @@ void read_input(char *file_name) {
 		// Populate the process struct
 		processes[i] = createProcess(processes[i], inputs[0], atoi(inputs[1]), atof(inputs[2]));
 
-		printf("%s\n", processes[i]->name);
-		printf("%d\n", processes[i]->run_time);
-		printf("%.2f\n", processes[i]->prob_to_block);
+		printf("%s\n", processes[i].name);
+		printf("%d\n", processes[i].run_time);
+		printf("%.2f\n", processes[i].prob_to_block);
 	}
-
-	///return processes;
-
+	fclose(fp);
 }
 
 int main(int argc, char *argv[]) {
- 
- 	//struct Process *processes;
-	read_input("input.txt");
+
+ 	int mode;	// Process queue mode; 0 = FCFS, 1 = RR
+	int wall_clock = 0;
+
+	if(argc < 2) {
+		perror("No flag entered.");
+		exit(1);
+	}
+
+	if(strcmp(argv[1],"-f") == 0) {
+		mode = 0;
+	}
+	else if(strcmp(argv[1],"-r") == 0) {
+		mode = 1;
+	}
+	else {
+		perror("Invalid flag entered.");
+		exit(1);
+	}
+
+	// Seed rng with 12345
+	srand(12345);
+
+	get_count("input.txt");
+ 	Process processes[process_count];
+	read_input("input.txt", processes);
+
+	//Process * head = processes[0];
+	//Process * temp = head;
+	for(int i = 0; i < process_count - 1; i++)
+	{
+		//printf("%s \n", temp->name);
+		//temp -> next = processes[i+1];
+		//temp -> prev = processes[i-1];
+
+		//temp = temp->next;
+
+		//processes[i].next = (Process*)malloc(sizeof(Process));
+		//processes[i].next = processes[i+1];
+		//printf("%s \n", processes[i].next->name);
+	}
+	//temp = head;
+
 
 }
