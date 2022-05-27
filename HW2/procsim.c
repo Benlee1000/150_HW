@@ -10,8 +10,9 @@ int isgraph(int argument);
 void srand(unsigned int seed);
 
 int process_count;
+typedef struct Process Process;
 
-typedef struct {
+struct Process{
 	char *name;
 	int priority;
 	int run_time;
@@ -22,10 +23,10 @@ typedef struct {
 	int number_of_blocks;
 	int io_time;
 
-	struct Process *next;
-	struct Process *prev;
+	Process *next;
+	Process *prev;
 
-} Process;
+};
 
 typedef struct {
 	int time_busy;
@@ -168,6 +169,7 @@ int main(int argc, char *argv[]) {
 
  	int mode;	// Process queue mode; 0 = FCFS, 1 = RR
 	int wall_clock = 0;
+	int will_block;
 
 	if(argc < 2) {
 		perror("No flag entered.");
@@ -188,25 +190,59 @@ int main(int argc, char *argv[]) {
 	// Seed rng with 12345
 	srand(12345);
 
+	// Get the process data and populate our struct array
 	get_count("input.txt");
  	Process processes[process_count];
 	read_input("input.txt", processes);
 
-	//Process * head = processes[0];
-	//Process * temp = head;
-	for(int i = 0; i < process_count - 1; i++)
+	// Initialize the CPU and I/O linked list
+	Process * CPU_head = &processes[0];
+	Process * IO_head = NULL;
+	Process * CPU_temp = CPU_head;
+	Process * IO_temp = NULL;
+	for(int i = 1; i < process_count; i++)
 	{
-		//printf("%s \n", temp->name);
-		//temp -> next = processes[i+1];
-		//temp -> prev = processes[i-1];
+		CPU_temp->prev = &processes[i-1];
+		CPU_temp->next = &processes[i];
+		
+		// printf("prev: %s\n", CPU_temp->prev->name);
+		// printf("next: %s\n", CPU_temp->next->name);		
 
-		//temp = temp->next;
+		CPU_temp = CPU_temp->next;
 
-		//processes[i].next = (Process*)malloc(sizeof(Process));
-		//processes[i].next = processes[i+1];
-		//printf("%s \n", processes[i].next->name);
 	}
-	//temp = head;
+	CPU_temp->prev = &processes[process_count-2];
+	//printf("prev: %s\n", temp->prev->name);
+	
 
+	// Run the simulation, as long as one linked list isn't null
+	if(CPU_head != NULL || IO_head != NULL) {
+
+		// Run CPU
+		if (CPU_head != NULL) {
+			// Determine if process will block
+			if ((float)rand()/(float)(RAND_MAX/1)< CPU_head->prob_to_block) {
+				will_block = 1;
+			}
+			else {
+				will_block = 0;
+			}
+
+			// Run FCFS CPU or RR CPU
+			if (mode == 0) {
+
+			}
+			else {
+
+			}
+
+		}
+
+		// Run I/O
+		if (IO_head != NULL) {
+
+		}
+
+	}
 
 }
