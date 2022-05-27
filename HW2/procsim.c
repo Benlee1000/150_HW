@@ -71,7 +71,7 @@ int get_count(char *file_name) {
 	fp = fopen(file_name, "r");
 
 	if(fp == NULL){
-		perror("File cannot be opened \n");
+		perror(file_name);
 	}
 
 	// Counting the amount of lines in the file to initialize the array
@@ -88,14 +88,11 @@ int get_count(char *file_name) {
 void read_input(char *file_name, Process processes[process_count]) {
 	FILE *fp;
 	int count_decimal;
-	char *str = (char*) malloc(61 * sizeof(char));
+	char *str = (char*) malloc(100 * sizeof(char));
 	float prob_to_block;
+	char *error_msg = (char*) malloc(100 * sizeof(char));
 
 	fp = fopen(file_name, "r");
-
-	if(fp == NULL){
-		perror("File cannot be opened \n");
-	}
 
 	for(int i = 0; i < process_count; i++){
 		fgets(str, 60, fp);
@@ -103,7 +100,7 @@ void read_input(char *file_name, Process processes[process_count]) {
 		 char ** inputs = (char **) calloc(3, sizeof(char*));
 		 for(int l = 0; l < 3; l++)
 		 {
-		 	inputs[l] = (char*) calloc(20, sizeof(char));
+		 	inputs[l] = (char*) calloc(30, sizeof(char));
 		 }
 		
 		// Separate the line into the 3 inputs
@@ -111,6 +108,12 @@ void read_input(char *file_name, Process processes[process_count]) {
 		for(int k = 0; k < strlen(str); k++) {
 			// Add the current character to the given input
 			if(isgraph(str[k])) {
+				// Check if line is malformed, with too many inputs
+				if (j > 2) {
+					snprintf(error_msg, 100, "%s %s%s%d%s", "Malformed line", file_name, "(", (i+1), ")");
+					perror(error_msg);
+					exit(1);
+				}
 				strncat(inputs[j], &str[k], 1);
 			}
 			// Increment the input on only the first whitespace after an entry
@@ -118,40 +121,52 @@ void read_input(char *file_name, Process processes[process_count]) {
 				j = j + 1;
 			}
 		}
+
+		// Check if line is malformed, with too little inputs
+		if (j < 2) {
+			snprintf(error_msg, 100, "%s %s%s%d%s", "Malformed line", file_name, "(", (i+1), ")");
+			perror(error_msg);
+			exit(1);
+		}
 	
 		// for (int p = 0; p < 3; p++) {
 		// 	printf("Input %d: %s\n", p, inputs[p]);
 		// }
 
-		
+		// Check if process name is too long
 		if(strlen(inputs[0]) > 10){
-			perror("process name is too large");
+			snprintf(error_msg, 100, "%s %s%s%d%s", "name is too long", file_name, "(", (i+1), ")");
+			perror(error_msg);
 			exit(1);
 		}
 
+		// Check if runtime is a positive integer
 		if(atoi(inputs[1]) < 1){
-			perror("runtime is not 1 or greater");
+			snprintf(error_msg, 100, "%s %s%s%d%s", "runtime is not positive integer", file_name, "(", (i+1), ")");
+			perror(error_msg);
 			exit(1);
 		}
 
+		// Check if probability is a number between 0 and 1
 		if(atoi(inputs[2]) > 1 || atoi(inputs[2]) < 0)
 		{
-			perror("the probability to block is not between 0 and 1");
+			snprintf(error_msg, 100, "%s %s%s%d%s", "probability < 0 or > 1", file_name, "(", (i+1), ")");
+			perror(error_msg);
 			exit(1);
 		}
 
-		float atoied_number = atof(inputs[2]);
+		// Check that deciaml precision = 2
+		float atofed_number = atof(inputs[2]);
 		int count5 = 0;
 		do{
 			++count5;
-			atoied_number = atoied_number * 10;
-		}while((int) atoied_number % 10 != 0);
+			atofed_number = atofed_number * 10;
+		}while((int) atofed_number % 10 != 0);
 			count5 = count5 - 1;
 			
-
-		if(count5 > 2)
-		{
-			perror("the probability to block is not within 2 decimal places");
+		if(count5 > 2) {
+			snprintf(error_msg, 100, "%s %s%s%d%s", "probability to block is not within 2 decimal places", file_name, "(", (i+1), ")");
+			perror(error_msg);
 			exit(1);
 		}
 		
@@ -171,8 +186,8 @@ int main(int argc, char *argv[]) {
 	int wall_clock = 0;
 	int will_block;
 
-	if(argc < 2) {
-		perror("No flag entered.");
+	if(argc < 3) {
+		perror("Not enough arguments.");
 		exit(1);
 	}
 
@@ -191,9 +206,9 @@ int main(int argc, char *argv[]) {
 	srand(12345);
 
 	// Get the process data and populate our struct array
-	get_count("input.txt");
+	get_count(argv[2]);
  	Process processes[process_count];
-	read_input("input.txt", processes);
+	read_input(argv[2], processes);
 
 	// Initialize the CPU and I/O linked list
 	Process * CPU_head = &processes[0];
