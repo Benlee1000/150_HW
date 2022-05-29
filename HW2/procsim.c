@@ -14,13 +14,12 @@ typedef struct Process Process;
 
 struct Process{
 	char *name;
-	int priority;
-	int run_time;
 	int remaining_time;
 	float prob_to_block;
 	int completion_time;
 	int cpu_uses;
-	int number_of_blocks;
+	int cpu_time;
+	int io_uses;
 	int io_time;
 
 	Process *next;
@@ -41,6 +40,7 @@ typedef struct {
 	int time_busy;
 	int time_idle;
 	double utilization;
+	int dispatches;
 	int started;
 	double throughput;
 
@@ -54,7 +54,7 @@ Process createProcess(Process t, char *name_in, int run_time_in, float prob_to_b
   //t = malloc(sizeof(Process));
 
   t.name = strdup(name_in);
-  t.run_time = run_time_in;
+  t.remaining_time = run_time_in;
   t.prob_to_block = prob_to_block_in;
   
   t.next = malloc(sizeof(Process));
@@ -77,7 +77,7 @@ int get_count(char *file_name) {
 	// Counting the amount of lines in the file to initialize the array
 	for (c = getc(fp); c != EOF; c = getc(fp)){
        if (c == '\n') // Increment count if this character is newline
-           count = count + 1;
+           count++;
 	}
 	fclose(fp);
 
@@ -118,7 +118,7 @@ void read_input(char *file_name, Process processes[process_count]) {
 			}
 			// Increment the input on only the first whitespace after an entry
 			if(k > 0 && isgraph(str[k-1]) && !(isgraph(str[k]))) {
-				j = j + 1;
+				j++;
 			}
 		}
 
@@ -162,7 +162,7 @@ void read_input(char *file_name, Process processes[process_count]) {
 			++count5;
 			atofed_number = atofed_number * 10;
 		}while((int) atofed_number % 10 != 0);
-			count5 = count5 - 1;
+			count5--;
 			
 		if(count5 > 2) {
 			snprintf(error_msg, 100, "%s %s%s%d%s", "probability to block is not within 2 decimal places", file_name, "(", (i+1), ")");
@@ -174,17 +174,38 @@ void read_input(char *file_name, Process processes[process_count]) {
 		processes[i] = createProcess(processes[i], inputs[0], atoi(inputs[1]), atof(inputs[2]));
 
 		printf("%s\n", processes[i].name);
-		printf("%d\n", processes[i].run_time);
+		printf("%d\n", processes[i].remaining_time);
 		printf("%.2f\n", processes[i].prob_to_block);
 	}
 	fclose(fp);
 }
 
+int min(int a, int b) {
+	if (a < b) {
+		return a;
+	}
+	return b;
+}
+
 int main(int argc, char *argv[]) {
 
+	CPU cpu;
+	ioDevice io;
+
+	cpu.time_busy = 0;
+	cpu.time_idle = 0;
+
+	io.time_busy = 0;
+	io.time_idle = 0;
+
+	int remaining_io_time;
+	int io_checked = 0;
  	int mode;	// Process queue mode; 0 = FCFS, 1 = RR
 	int wall_clock = 0;
 	int will_block;
+	int checked = 0;
+	int remaining_CPU_time;
+	const int QUANTA = 5;
 
 	if(argc < 3) {
 		perror("Not enough arguments.");
@@ -235,27 +256,61 @@ int main(int argc, char *argv[]) {
 
 		// Run CPU
 		if (CPU_head != NULL) {
-			// Determine if process will block
-			if ((float)rand()/(float)(RAND_MAX/1)< CPU_head->prob_to_block) {
-				will_block = 1;
+			// Determine if process will block, only when entering
+			if (!checked){
+				if ((float)rand()/(float)(RAND_MAX/1) < CPU_head->prob_to_block) {
+					will_block = 1;
+				}
+				else {
+					will_block = 0;
+				}
 			}
-			else {
-				will_block = 0;
-			}
+			// printf("Will block: %d\n", will_block);
 
-			// Run FCFS CPU or RR CPU
+			// Run FCFS (0) CPU
 			if (mode == 0) {
-
+				// Determine time until blocking
+				if (will_block) {
+					remaining_CPU_time = (rand() % CPU_head->remaining_time) + 1;
+					checked = 1;
+				}
+				else {
+					remaining_CPU_time = CPU_head->remaining_time;
+				}
+				// printf("FCFS time: %d\n", remaining_CPU_time);
 			}
+			// Run RR (1) CPU
 			else {
-
+				if (will_block) {
+					// Find remaining run time, must be between 1
+					// and the smallest of QUANTA or remaining process runtime
+					remaining_CPU_time = (rand() % min(CPU_head->remaining_time, QUANTA)) + 1;
+					checked = 1;
+				}
+				else {
+					remaining_CPU_time = CPU_head->remaining_time;
+				}
+				// printf("RR time: %d\n", remaining_CPU_time);
 			}
-
+			cpu.time_busy++;
+		}
+		else {
+			cpu.time_idle++;
 		}
 
 		// Run I/O
 		if (IO_head != NULL) {
+			// Initialize the IO runtime for the process
+			if(!io_checked){
+				remaining_io_time = (rand() % 30) + 1;
+				io_checked = 1;
+			}
 
+
+			io.time_busy++;
+		}
+		else{
+			io.time_idle++;
 		}
 
 	}
