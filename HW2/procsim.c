@@ -198,7 +198,7 @@ int main(int argc, char *argv[]) {
 	io.time_busy = 0;
 	io.time_idle = 0;
 
-	int remaining_io_time;
+	int remaining_IO_time;
 	int io_checked = 0;
  	int mode;	// Process queue mode; 0 = FCFS, 1 = RR
 	int wall_clock = 0;
@@ -233,9 +233,11 @@ int main(int argc, char *argv[]) {
 
 	// Initialize the CPU and I/O linked list
 	Process * CPU_head = &processes[0];
-	Process * IO_head = NULL;
 	Process * CPU_temp = CPU_head;
+	Process * CPU_last = NULL;
+	Process * IO_head = NULL;
 	Process * IO_temp = NULL;
+	Process * IO_last = NULL;
 	for(int i = 1; i < process_count; i++)
 	{
 		CPU_temp->prev = &processes[i-1];
@@ -248,17 +250,18 @@ int main(int argc, char *argv[]) {
 
 	}
 	CPU_temp->prev = &processes[process_count-2];
+	CPU_last = &processes[process_count-1];
 	//printf("prev: %s\n", temp->prev->name);
-	
+	//printf("CPU last: %s\n", CPU_last->name);
 
 	// Run the simulation, as long as one linked list isn't null
 	if(CPU_head != NULL || IO_head != NULL) {
 
 		// Run CPU
 		if (CPU_head != NULL) {
-			// Determine if process will block, only when entering
+			// Determine if process will block, only when entering and more than 2 time unis left
 			if (!checked){
-				if ((float)rand()/(float)(RAND_MAX/1) < CPU_head->prob_to_block) {
+				if (((float)rand()/(float)(RAND_MAX/1) < CPU_head->prob_to_block) && CPU_head->remaining_time > 1) {
 					will_block = 1;
 				}
 				else {
@@ -276,8 +279,10 @@ int main(int argc, char *argv[]) {
 				}
 				else {
 					remaining_CPU_time = CPU_head->remaining_time;
+					checked = 1;
 				}
 				// printf("FCFS time: %d\n", remaining_CPU_time);
+
 			}
 			// Run RR (1) CPU
 			else {
@@ -288,9 +293,83 @@ int main(int argc, char *argv[]) {
 					checked = 1;
 				}
 				else {
-					remaining_CPU_time = CPU_head->remaining_time;
+					remaining_CPU_time = QUANTA;
 				}
 				// printf("RR time: %d\n", remaining_CPU_time);
+			}
+
+			remaining_CPU_time--;
+			CPU_head->remaining_time--;	
+
+			will_block = 0;
+			remaining_CPU_time = 0;
+
+			// CPU_head->next = NULL;
+
+			// IO_head = &processes[1];
+			// IO_last = &processes[1];
+
+			// Deal with a process once it's CPU time is up
+			if(remaining_CPU_time == 0){
+				checked = 0;
+				if(will_block){
+					// move into IO Q, special case when IO q is empty
+					if(IO_head == NULL) {
+						IO_head = CPU_head;
+						IO_last = IO_head;
+						CPU_head = CPU_head->next;
+						IO_head->next = NULL;
+						IO_head->prev = NULL;
+						//printf("\n Move into empty IO: %s\n", IO_head->name);
+					}
+					else {
+						IO_last->next = CPU_head;
+						CPU_head->prev = IO_last;
+						CPU_head = CPU_head->next;
+						// Deal with special case when only one process left in CPU
+						if (CPU_head != NULL)
+							CPU_head->prev = NULL;
+
+						else 
+							CPU_last = NULL;
+					
+						IO_last = IO_last->next;
+						IO_last->next = NULL;
+
+						// printf("\n Move into IO(1): %s \n", IO_head->name);
+						// printf("Move into IO(2): %s \n", IO_last->name);	
+						}
+				}	
+				else {
+					
+					// Check if there's still remaining time. If yes, put in back of queue. otherwise, remove it (while).
+					if (CPU_head->remaining_time > 0) {
+						// Special case when one process is left
+						if (CPU_head->next == NULL) {
+							// Do nothing	
+						}
+						else {
+							CPU_head->prev = CPU_last;
+							CPU_last->next = CPU_head;
+							CPU_last = CPU_head;
+							CPU_head = CPU_head->next;
+							CPU_last->next = NULL;
+							CPU_head->prev = NULL;
+						}
+					}
+					else {
+						CPU_head->next->remaining_time = 0;
+						// Loop until we get to a valid process to run on the CPU
+						while(CPU_head != NULL && CPU_head->remaining_time == 0) {
+							CPU_head = CPU_head->next;
+							if (CPU_head != NULL)
+								CPU_head->prev = NULL;
+							//printf("\nCPU_head: %s \n", CPU_head->name);
+						}
+
+					}
+
+				}
 			}
 			cpu.time_busy++;
 		}
@@ -302,10 +381,36 @@ int main(int argc, char *argv[]) {
 		if (IO_head != NULL) {
 			// Initialize the IO runtime for the process
 			if(!io_checked){
-				remaining_io_time = (rand() % 30) + 1;
+				remaining_IO_time = (rand() % 30) + 1;
 				io_checked = 1;
 			}
+			
+			remaining_IO_time--;
+			
+			// Return process to CPU
+			if(remaining_IO_time == 0){
+				io_checked = 0;
+				if(CPU_head == NULL) {
+					CPU_head = IO_head;
+					CPU_last = CPU_head;
+					IO_head = IO_head->next;
+					CPU_head->next = NULL;
+					CPU_head->prev = NULL;
+				}
+				else {
+					CPU_last->next = IO_head;
+					IO_head->prev = CPU_last;
+					IO_head = IO_head->next;
+					// Deal with special case when only one process left in IO
+					if (IO_head != NULL)
+						IO_head->prev = NULL;
+					else 
+						IO_last = NULL;
+					CPU_last = CPU_last->next;
+					CPU_last->next = NULL;
+				}
 
+			}
 
 			io.time_busy++;
 		}
