@@ -277,7 +277,7 @@ int main(int argc, char *argv[]) {
 
 		// Run CPU
 		if (CPU_head != NULL) {
-			printf("CPU_head: %s Remaining_time: %d\n", CPU_head->name, CPU_head->remaining_time);
+			printf("CPU_head: %s Remaining_time: %d\n", CPU_head->name, remaining_CPU_time);
 			// Determine if process will block, only when entering and more than 2 time unis left
 			if (!checked){
 				if (((float)rand()/(float)(RAND_MAX/1) < CPU_head->prob_to_block) && CPU_head->remaining_time > 1) {
@@ -292,27 +292,33 @@ int main(int argc, char *argv[]) {
 			// Run FCFS (0) CPU
 			if (mode == 0) {
 				// Determine time until blocking
-				if (will_block) {
-					remaining_CPU_time = (rand() % CPU_head->remaining_time) + 1;
-					checked = 1;
+				if(!checked){
+					if (will_block) {
+						remaining_CPU_time = (rand() % CPU_head->remaining_time) + 1;
+						checked = 1;
+					}
+					else {
+						remaining_CPU_time = CPU_head->remaining_time;
+						checked = 1;
+					}
 				}
-				else {
-					remaining_CPU_time = CPU_head->remaining_time;
-					checked = 1;
-				}
+				
 				// printf("FCFS time: %d\n", remaining_CPU_time);
 
 			}
 			// Run RR (1) CPU
 			else {
-				if (will_block) {
-					// Find remaining run time, must be between 1
-					// and the smallest of QUANTA or remaining process runtime
-					remaining_CPU_time = (rand() % min(CPU_head->remaining_time, QUANTA)) + 1;
-					checked = 1;
-				}
-				else {
-					remaining_CPU_time = QUANTA;
+				if (!checked){
+					if (will_block) {
+						// Find remaining run time, must be between 1
+						// and the smallest of QUANTA or remaining process runtime
+						remaining_CPU_time = (rand() % min(CPU_head->remaining_time, QUANTA)) + 1;
+						checked = 1;
+					}
+					else {
+						remaining_CPU_time = QUANTA;
+						checked = 1;
+					}
 				}
 				// printf("RR time: %d\n", remaining_CPU_time);
 			}
@@ -403,7 +409,7 @@ int main(int argc, char *argv[]) {
 			remaining_IO_time--;
 			io.time_busy++;
 			IO_head->io_time++;
-			
+			printf("IO\n");
 			// Return process to CPU
 			if(remaining_IO_time == 0) {
 				io_checked = 0;
