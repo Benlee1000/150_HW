@@ -63,19 +63,18 @@ Process createProcess(Process t, char *name_in, int run_time_in, float prob_to_b
   return t;
 }
 
-void createCPU(CPU t){
- t.time_busy = 0 ;
- t.time_idle = 0;
- t.dispatches = 0;
+void createCPU(CPU *t){
+	t->time_busy = 0 ;
+	t->time_idle = 0;
+	t->dispatches = 0;
 
 }
-void createIO(ioDevice t){
+void createIO(ioDevice *t){
 
- t.time_busy = 0 ;
- t.time_idle = 0;
- t.dispatches = 0;
- t.num_jobs = 0;
-
+	t->time_busy = 0 ;
+	t->time_idle = 0;
+	t->dispatches = 0;
+	t->num_jobs = 0;
 }
 
 int get_count(char *file_name) {
@@ -188,9 +187,9 @@ void read_input(char *file_name, Process processes[process_count]) {
 		// Populate the process struct
 		processes[i] = createProcess(processes[i], inputs[0], atoi(inputs[1]), atof(inputs[2]));
 
-		printf("%s\n", processes[i].name);
-		printf("%d\n", processes[i].remaining_time);
-		printf("%.2f\n", processes[i].prob_to_block);
+		// printf("%s\n", processes[i].name);
+		// printf("%d\n", processes[i].remaining_time);
+		// printf("%.2f\n", processes[i].prob_to_block);
 	}
 	fclose(fp);
 }
@@ -204,8 +203,8 @@ int min(int a, int b) {
 
 int main(int argc, char *argv[]) {
 
-	CPU cpu;
-	ioDevice io;
+	CPU *cpu = malloc(sizeof(CPU));
+	ioDevice *io = malloc(sizeof(ioDevice));
 
 	createIO(io);
 	createCPU(cpu);
@@ -242,7 +241,7 @@ int main(int argc, char *argv[]) {
 
 	// Get the process data and populate our struct array
 	get_count(argv[2]);
- 	Process processes[process_count];
+	Process *processes = malloc(process_count * sizeof(Process));
 	read_input(argv[2], processes);
 
 	// Initialize the CPU and I/O linked list
@@ -331,7 +330,7 @@ int main(int argc, char *argv[]) {
 
 			remaining_CPU_time--;
 			CPU_head->remaining_time--;	
-			cpu.time_busy++;
+			cpu->time_busy++;
 			CPU_head->cpu_time++;
 
 			// Deal with a process once it's CPU time is up
@@ -339,8 +338,8 @@ int main(int argc, char *argv[]) {
 				checked = 0;
 				if(will_block){
 					// move into IO Q, special case when IO q is empty
-					io.dispatches++;
-					io.num_jobs++;
+					io->dispatches++;
+					io->num_jobs++;
 					CPU_head->io_uses++;
 					if(IO_head == NULL) {
 						just_arrived = 1; // Don't allow CPU and I/O runtime for the same process in same time period
@@ -405,7 +404,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		else {
-			cpu.time_idle++;
+			cpu->time_idle++;
 		}
 
 		// Run I/O
@@ -419,19 +418,19 @@ int main(int argc, char *argv[]) {
 			
 			if (!just_arrived) {
 				remaining_IO_time--;
-				io.time_busy++;
+				io->time_busy++;
 				IO_head->io_time++;
 			}
 			// Don't allow a process to run in both queues in a single time unit
 			else {
-				io.time_idle++;
+				io->time_idle++;
 				just_arrived = 0;
 			}
 			
 			// Return process to CPU
 			if(remaining_IO_time == 0) {
 				io_checked = 0;
-				cpu.dispatches++;
+				cpu->dispatches++;
 				// Place process in empty CPU Q
 				if(CPU_head == NULL) {
 					CPU_head = IO_head;
@@ -462,40 +461,67 @@ int main(int argc, char *argv[]) {
 			}	
 		}
 		else{
-			io.time_idle++;
+			io->time_idle++;
 		}
 
-		Process * temp = NULL;
-		if(CPU_head != NULL) {
-			temp = CPU_head;
-			printf("\nRemaining_time: %d CPU LIST: ", remaining_CPU_time);
-			while (temp != NULL){
-				printf("%s ", temp->name);
-				temp = temp->next;
-			}
-		}
-		if(IO_head != NULL) {
-			temp = IO_head;
-			printf("\nRemaining_IO_time: %d IO LIST: ", remaining_IO_time);
-			while (temp != NULL){
-				printf("%s ", temp->name);
-				temp = temp->next;
-			}
-		}
-		printf("\n");
+		// Process * temp = NULL;
+		// if(CPU_head != NULL) {
+		// 	temp = CPU_head;
+		// 	printf("\nRemaining_time: %d CPU LIST: ", remaining_CPU_time);
+		// 	while (temp != NULL){
+		// 		printf("%s ", temp->name);
+		// 		temp = temp->next;
+		// 	}
+		// }
+		// if(IO_head != NULL) {
+		// 	temp = IO_head;
+		// 	printf("\nRemaining_IO_time: %d IO LIST: ", remaining_IO_time);
+		// 	while (temp != NULL){
+		// 		printf("%s ", temp->name);
+		// 		temp = temp->next;
+		// 	}
+		// }
+		// printf("\n");
 
 		wall_clock++;
 	} // End simulation loop
 
 	// ---------------------Input/Output---------------------
 
-	cpu.utilization = (cpu.time_busy/ wall_clock);
-	cpu.throughput = (process_count/wall_clock);
+	wall_clock--; // Wall clock increased one too many times, when last process finishes
+	cpu->utilization = (cpu->time_busy/ (float)wall_clock);
+	cpu->throughput = (process_count/ (float)wall_clock);
 
-	io.utilization = (io.time_busy/ wall_clock);
-	io.throughput = (io.num_jobs/ wall_clock);
+	io->utilization = (io->time_busy/ (float)wall_clock);
+	io->throughput = (io->num_jobs/ (float)wall_clock);
 
-	
+	//printf("First time: %d\n", processes[0].cpu_time);
+
+	printf("Processes:\n");
+	printf("name    CPU time    when done    cpu disp    i/o disp    i/o time\n");
+	for(int i = 0; i < process_count; i++)
+	{
+	    
+	    printf("%s \t%d \t%d \t%d \t%d \t%d\n", processes[i].name, processes[i].cpu_time, processes[i].completion_time, processes[i].cpu_uses, processes[i].io_uses, processes[i].io_time);
+	}
+
+
+	printf("\nSystem: \n");
+	printf("The wall clock time at which the simulation finished: %d\n", wall_clock);
+
+	printf("\nCPU: \n");
+	printf("Total time spent busy: %d \n", cpu->time_busy);
+	printf("Total time spent idle: %d \n", cpu->time_idle);
+	printf("CPU utilization: %.2f \n", cpu->utilization);
+	printf("Number of dispatches: %d \n", cpu->dispatches);
+	printf("Overall throughpout: %.2f \n", cpu->throughput);
+
+	printf("\nI/O device: \n");
+	printf("Total time spent busy: %d \n", io->time_busy);
+	printf("Total time spent idle: %d \n", io->time_idle);
+	printf("I/O utilization: %.2f \n", io->utilization);
+	printf("Number of dispatches: %d \n", io->dispatches);
+	printf("Overall throughput: %.2f \n", io->throughput);
 
 
 }
