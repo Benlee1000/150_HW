@@ -28,7 +28,7 @@ struct Process{
 };
 
 typedef struct {
-	int time_busy ;
+	int time_busy;
 	int time_idle;
 	double utilization;
 	int dispatches;
@@ -210,19 +210,15 @@ int main(int argc, char *argv[]) {
 	createIO(io);
 	createCPU(cpu);
 
-	cpu.time_busy = 0;
-	cpu.time_idle = 0;
-
-	io.time_busy = 0;
-	io.time_idle = 0;
-
-	int remaining_IO_time;
+	int mode;	// Process queue mode; 0 = FCFS, 1 = RR
+	int remaining_CPU_time = 0;
+	int remaining_IO_time = 0;
+	int checked = 0;
 	int io_checked = 0;
- 	int mode;	// Process queue mode; 0 = FCFS, 1 = RR
 	int wall_clock = 0;
 	int will_block;
-	int checked = 0;
-	int remaining_CPU_time;
+	int just_arrived = 0;
+	
 	const int QUANTA = 5;
 
 	if(argc < 3) {
@@ -256,31 +252,35 @@ int main(int argc, char *argv[]) {
 	Process * IO_head = NULL;
 	Process * IO_temp = NULL;
 	Process * IO_last = NULL;
-	for(int i = 1; i < process_count; i++)
+	for(int i = 1; i < process_count+1; i++)
 	{
-		CPU_temp->prev = &processes[i-1];
-		CPU_temp->next = &processes[i];
-		
-		// printf("prev: %s\n", CPU_temp->prev->name);
-		// printf("next: %s\n", CPU_temp->next->name);		
+		if(i != 0) 
+			CPU_temp->prev = &processes[i-1];
+		if(i != process_count)
+			CPU_temp->next = &processes[i];	
+		else
+			CPU_temp->next = NULL;
 
 		CPU_temp = CPU_temp->next;
 
 	}
-	CPU_temp->prev = &processes[process_count-2];
 	CPU_last = &processes[process_count-1];
 	//printf("prev: %s\n", temp->prev->name);
 	//printf("CPU last: %s\n", CPU_last->name);
 
+	// Process * temp = NULL;
+	// temp = CPU_head;
+	// printf("\nCPU LIST: ");
+	// while (temp != NULL) {
+	// 	printf("%s ", temp->name);
+	// 	temp = temp->next;
+	// }
+
 	// Run the simulation, as long as one linked list isn't null
 	int test_count = 0;
-	while((CPU_head != NULL || IO_head != NULL) && test_count < 60) {
-		test_count++;
-
-		if(CPU_head != NULL)
-			printf("\nCPU_head: %s Remaining_time: %d\n", CPU_head->name, remaining_CPU_time);
-		if(IO_head != NULL)
-			printf("IO_head: %s Remaining_time: %d\n", IO_head->name, remaining_IO_time);
+	
+	while((CPU_head != NULL || IO_head != NULL)) {
+		//test_count++;
 
 		// Run CPU
 		if (CPU_head != NULL) {
@@ -343,9 +343,16 @@ int main(int argc, char *argv[]) {
 					io.num_jobs++;
 					CPU_head->io_uses++;
 					if(IO_head == NULL) {
+						just_arrived = 1; // Don't allow CPU and I/O runtime for the same process in same time period
 						IO_head = CPU_head;
 						IO_last = CPU_head;
 						CPU_head = CPU_head->next;
+						// Deal with one process left in CPU
+						if (CPU_head != NULL)
+							CPU_head->prev = NULL;
+						else
+							CPU_last = NULL;
+
 						IO_head->next = NULL;
 						IO_head->prev = NULL;
 						// printf("\n Move into empty IO: %s\n", IO_head->name);
@@ -358,11 +365,7 @@ int main(int argc, char *argv[]) {
 						if (CPU_head != NULL)
 							CPU_head->prev = NULL;
 						else
-						{
 							CPU_last = NULL;
-							// Never occurring
-							printf("\nONE LEFT IN CPU%s\n", CPU_head->name);
-						} 	
 					
 						IO_last = IO_last->next;
 						IO_last->next = NULL;
@@ -389,9 +392,9 @@ int main(int argc, char *argv[]) {
 						}
 					}
 					else {
-						// CPU_head->next->remaining_time = 0;
 						// Loop until we get to a valid process to run on the CPU
 						while(CPU_head != NULL && CPU_head->remaining_time == 0) {
+							CPU_head->completion_time = wall_clock;
 							CPU_head = CPU_head->next;
 							if (CPU_head != NULL)
 								CPU_head->prev = NULL;
@@ -414,9 +417,17 @@ int main(int argc, char *argv[]) {
 				io_checked = 1;
 			}
 			
-			remaining_IO_time--;
-			io.time_busy++;
-			IO_head->io_time++;
+			if (!just_arrived) {
+				remaining_IO_time--;
+				io.time_busy++;
+				IO_head->io_time++;
+			}
+			// Don't allow a process to run in both queues in a single time unit
+			else {
+				io.time_idle++;
+				just_arrived = 0;
+			}
+			
 			// Return process to CPU
 			if(remaining_IO_time == 0) {
 				io_checked = 0;
@@ -426,6 +437,11 @@ int main(int argc, char *argv[]) {
 					CPU_head = IO_head;
 					CPU_last = IO_head;
 					IO_head = IO_head->next;
+					// Deal with special case when only one process left in IO
+					if (IO_head != NULL)
+						IO_head->prev = NULL;
+					else 
+						IO_last = NULL;
 					CPU_head->next = NULL;
 					CPU_head->prev = NULL;
 					//printf("IO->empty CPU head: %s \n", CPU_head->name);
@@ -449,6 +465,37 @@ int main(int argc, char *argv[]) {
 			io.time_idle++;
 		}
 
+		Process * temp = NULL;
+		if(CPU_head != NULL) {
+			temp = CPU_head;
+			printf("\nRemaining_time: %d CPU LIST: ", remaining_CPU_time);
+			while (temp != NULL){
+				printf("%s ", temp->name);
+				temp = temp->next;
+			}
+		}
+		if(IO_head != NULL) {
+			temp = IO_head;
+			printf("\nRemaining_IO_time: %d IO LIST: ", remaining_IO_time);
+			while (temp != NULL){
+				printf("%s ", temp->name);
+				temp = temp->next;
+			}
+		}
+		printf("\n");
+
 		wall_clock++;
-	}
+	} // End simulation loop
+
+	// ---------------------Input/Output---------------------
+
+	cpu.utilization = (cpu.time_busy/ wall_clock);
+	cpu.throughput = (process_count/wall_clock);
+
+	io.utilization = (io.time_busy/ wall_clock);
+	io.throughput = (io.num_jobs/ wall_clock);
+
+	
+
+
 }
