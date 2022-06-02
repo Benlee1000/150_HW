@@ -56,6 +56,12 @@ Process createProcess(Process t, char *name_in, int run_time_in, float prob_to_b
   t.name = strdup(name_in);
   t.remaining_time = run_time_in;
   t.prob_to_block = prob_to_block_in;
+
+  t.completion_time = 0;
+  t.cpu_uses = 0;
+  t.cpu_time = 0;
+  t.io_uses = 0;
+  t.io_time = 0;
   
   t.next = malloc(sizeof(Process));
   t.prev = malloc(sizeof(Process));
@@ -67,6 +73,8 @@ void createCPU(CPU *t){
 	t->time_busy = 0 ;
 	t->time_idle = 0;
 	t->dispatches = 0;
+	t->utilization = 0;
+	t->throughput = 0;
 
 }
 void createIO(ioDevice *t){
@@ -75,6 +83,8 @@ void createIO(ioDevice *t){
 	t->time_idle = 0;
 	t->dispatches = 0;
 	t->num_jobs = 0;
+	t->utilization = 0;
+	t->throughput = 0;
 }
 
 int get_count(char *file_name) {
@@ -109,7 +119,7 @@ void read_input(char *file_name, Process processes[process_count]) {
 	fp = fopen(file_name, "r");
 
 	for(int i = 0; i < process_count; i++){
-		fgets(str, 60, fp);
+		fgets(str, 70, fp);
 
 		 char ** inputs = (char **) calloc(3, sizeof(char*));
 		 for(int l = 0; l < 3; l++)
@@ -168,7 +178,7 @@ void read_input(char *file_name, Process processes[process_count]) {
 			perror(error_msg);
 			exit(1);
 		}
-
+		/*
 		// Check that deciaml precision = 2
 		float atofed_number = atof(inputs[2]);
 		int count5 = 0;
@@ -183,7 +193,8 @@ void read_input(char *file_name, Process processes[process_count]) {
 			perror(error_msg);
 			exit(1);
 		}
-		
+		*/
+
 		// Populate the process struct
 		processes[i] = createProcess(processes[i], inputs[0], atoi(inputs[1]), atof(inputs[2]));
 
@@ -214,9 +225,10 @@ int main(int argc, char *argv[]) {
 	int remaining_IO_time = 0;
 	int checked = 0;
 	int io_checked = 0;
-	int wall_clock = 0;
+	int wall_clock = 0; // CHANGE BACK
 	int will_block;
 	int just_arrived = 0;
+	int retrieving_process = 0;
 	
 	const int QUANTA = 5;
 
@@ -241,7 +253,7 @@ int main(int argc, char *argv[]) {
 
 	// Get the process data and populate our struct array
 	get_count(argv[2]);
-	Process *processes = malloc(process_count * sizeof(Process));
+	Process *processes = malloc(process_count * sizeof(Process)); // Leave space for a name to be allocated
 	read_input(argv[2], processes);
 
 	// Initialize the CPU and I/O linked list
@@ -260,6 +272,7 @@ int main(int argc, char *argv[]) {
 		else
 			CPU_temp->next = NULL;
 
+
 		CPU_temp = CPU_temp->next;
 
 	}
@@ -275,8 +288,8 @@ int main(int argc, char *argv[]) {
 	// 	temp = temp->next;
 	// }
 
+
 	// Run the simulation, as long as one linked list isn't null
-	int test_count = 0;
 	
 	while((CPU_head != NULL || IO_head != NULL)) {
 		//test_count++;
@@ -302,10 +315,15 @@ int main(int argc, char *argv[]) {
 					if (will_block) {
 						remaining_CPU_time = (rand() % CPU_head->remaining_time) + 1;
 						checked = 1;
+						cpu->time_idle++;
+						retrieving_process = 1;
+
 					}
 					else {
 						remaining_CPU_time = CPU_head->remaining_time;
 						checked = 1;
+						cpu->time_idle++;
+						retrieving_process = 1;
 					}
 				}
 				// printf("FCFS time: %d\n", remaining_CPU_time);
@@ -319,89 +337,99 @@ int main(int argc, char *argv[]) {
 						// and the smallest of QUANTA or remaining process runtime
 						remaining_CPU_time = (rand() % min(CPU_head->remaining_time, QUANTA)) + 1;
 						checked = 1;
+						cpu->time_idle++;
+						retrieving_process = 1;
 					}
 					else {
 						remaining_CPU_time = min(CPU_head->remaining_time, QUANTA);
 						checked = 1;
+						cpu->time_idle++;
+						retrieving_process = 1;
 					}
 				}
 				// printf("RR time: %d\n", remaining_CPU_time);
 			}
+			// if(retrieving_process) printf("\n\nRetrieving Process \n\n");
+			if(!retrieving_process){
 
-			remaining_CPU_time--;
-			CPU_head->remaining_time--;	
-			cpu->time_busy++;
-			CPU_head->cpu_time++;
+				remaining_CPU_time--;
+				CPU_head->remaining_time--;	
+				cpu->time_busy++;
+				CPU_head->cpu_time++;
 
-			// Deal with a process once it's CPU time is up
-			if(remaining_CPU_time == 0){
-				checked = 0;
-				if(will_block){
-					// move into IO Q, special case when IO q is empty
-					io->dispatches++;
-					io->num_jobs++;
-					CPU_head->io_uses++;
-					if(IO_head == NULL) {
-						just_arrived = 1; // Don't allow CPU and I/O runtime for the same process in same time period
-						IO_head = CPU_head;
-						IO_last = CPU_head;
-						CPU_head = CPU_head->next;
-						// Deal with one process left in CPU
-						if (CPU_head != NULL)
-							CPU_head->prev = NULL;
-						else
-							CPU_last = NULL;
-
-						IO_head->next = NULL;
-						IO_head->prev = NULL;
-						// printf("\n Move into empty IO: %s\n", IO_head->name);
-					}
-					else {
-						IO_last->next = CPU_head;
-						CPU_head->prev = IO_last;
-						CPU_head = CPU_head->next;
-						// Deal with special case when only one process left in CPU (set last to NULL)
-						if (CPU_head != NULL)
-							CPU_head->prev = NULL;
-						else
-							CPU_last = NULL;
-					
-						IO_last = IO_last->next;
-						IO_last->next = NULL;
-
-						// printf("\n Move into IO(1): %s \n", IO_head->name);
-						// printf("Move into IO(2): %s \n", IO_last->name);	
-						}
-				}	
-				else {
-					
-					// Check if there's still remaining time. If yes, put in back of queue. otherwise, remove it (while).
-					if (CPU_head->remaining_time > 0) {
-						// Special case when one process is left in cpu
-						if (CPU_head->next == NULL) {
-							// Do nothing	
-						}
-						else {
-							CPU_head->prev = CPU_last;
-							CPU_last->next = CPU_head;
-							CPU_last = CPU_head;
+				// Deal with a process once it's CPU time is up
+				if(remaining_CPU_time == 0){
+					checked = 0;
+					if(will_block){
+						// move into IO Q, special case when IO q is empty
+						io->dispatches++;
+						io->num_jobs++;
+						CPU_head->io_uses++;
+						if(IO_head == NULL) {
+							just_arrived = 1; // Don't allow CPU and I/O runtime for the same process in same time period
+							IO_head = CPU_head;
+							IO_last = CPU_head;
 							CPU_head = CPU_head->next;
-							CPU_last->next = NULL;
-							CPU_head->prev = NULL;
-						}
-					}
-					else {
-						// Loop until we get to a valid process to run on the CPU
-						while(CPU_head != NULL && CPU_head->remaining_time == 0) {
-							CPU_head->completion_time = wall_clock;
-							CPU_head = CPU_head->next;
+							// Deal with one process left in CPU
 							if (CPU_head != NULL)
 								CPU_head->prev = NULL;
-							//printf("\nCPU_head: %s \n", CPU_head->name);
+							else
+								CPU_last = NULL;
+
+							IO_head->next = NULL;
+							IO_head->prev = NULL;
+							// printf("\n Move into empty IO: %s\n", IO_head->name);
+						}
+						else {
+							IO_last->next = CPU_head;
+							CPU_head->prev = IO_last;
+							CPU_head = CPU_head->next;
+							// Deal with special case when only one process left in CPU (set last to NULL)
+							if (CPU_head != NULL)
+								CPU_head->prev = NULL;
+							else
+								CPU_last = NULL;
+						
+							IO_last = IO_last->next;
+							IO_last->next = NULL;
+
+							// printf("\n Move into IO(1): %s \n", IO_head->name);
+							// printf("Move into IO(2): %s \n", IO_last->name);	
+							}
+					}	
+					else {
+						
+						// Check if there's still remaining time. If yes, put in back of queue. otherwise, remove it (while).
+						if (CPU_head->remaining_time > 0) {
+							CPU_head->cpu_uses++;
+							cpu->dispatches++;
+							// Special case when one process is left in cpu
+							if (CPU_head->next == NULL) {
+								// Do nothing, count as a CPU dispatch?
+							}
+							else {
+								CPU_head->prev = CPU_last;
+								CPU_last->next = CPU_head;
+								CPU_last = CPU_head;
+								CPU_head = CPU_head->next;
+								CPU_last->next = NULL;
+								CPU_head->prev = NULL;
+							}
+						}
+						else {
+					
+							if(CPU_head != NULL && CPU_head->remaining_time == 0) {
+								CPU_head->completion_time = wall_clock;
+								CPU_head = CPU_head->next;
+								if (CPU_head != NULL)
+									CPU_head->prev = NULL;
+								//printf("\nCPU_head: %s \n", CPU_head->name);
+							}
 						}
 					}
 				}
-			}
+			}	
+			retrieving_process = 0;
 		}
 		else {
 			cpu->time_idle++;
@@ -411,8 +439,12 @@ int main(int argc, char *argv[]) {
 		if (IO_head != NULL) {
 
 			// Initialize the IO runtime for the process
-			if(!io_checked){
+			if(!io_checked && IO_head->remaining_time != 0){
 				remaining_IO_time = (rand() % 30) + 1;
+				io_checked = 1;
+			}
+			else if(!io_checked && IO_head->remaining_time == 0) {
+				remaining_IO_time = 1;
 				io_checked = 1;
 			}
 			
@@ -431,6 +463,7 @@ int main(int argc, char *argv[]) {
 			if(remaining_IO_time == 0) {
 				io_checked = 0;
 				cpu->dispatches++;
+				IO_head->cpu_uses++;
 				// Place process in empty CPU Q
 				if(CPU_head == NULL) {
 					CPU_head = IO_head;
@@ -485,24 +518,24 @@ int main(int argc, char *argv[]) {
 
 		wall_clock++;
 	} // End simulation loop
-
+	
 	// ---------------------Input/Output---------------------
 
-	wall_clock--; // Wall clock increased one too many times, when last process finishes
-	cpu->utilization = (cpu->time_busy/ (float)wall_clock);
-	cpu->throughput = (process_count/ (float)wall_clock);
+	//wall_clock--; // Wall clock increased one too many times, when last process finishes
+	cpu->utilization = (cpu->time_busy/(float)wall_clock);
+	cpu->throughput = (process_count/(float)wall_clock);
 
-	io->utilization = (io->time_busy/ (float)wall_clock);
-	io->throughput = (io->num_jobs/ (float)wall_clock);
+	io->utilization = (io->time_busy/(float)wall_clock);
+	io->throughput = (io->num_jobs/(float)wall_clock);
 
 	//printf("First time: %d\n", processes[0].cpu_time);
 
 	printf("Processes:\n");
-	printf("name    CPU time    when done    cpu disp    i/o disp    i/o time\n");
+	printf("name\t\tCPU time\twhen done\tcpu disp\ti/o disp\ti/o time\n");
 	for(int i = 0; i < process_count; i++)
 	{
 	    
-	    printf("%s \t%d \t%d \t%d \t%d \t%d\n", processes[i].name, processes[i].cpu_time, processes[i].completion_time, processes[i].cpu_uses, processes[i].io_uses, processes[i].io_time);
+	    printf("%-10s \t%d \t\t%d \t\t%d \t\t%d \t\t%d\n", processes[i].name, processes[i].cpu_time, processes[i].completion_time, processes[i].cpu_uses, processes[i].io_uses, processes[i].io_time);
 	}
 
 
