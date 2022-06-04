@@ -12,12 +12,13 @@ VIEW:           random number (raw, type, value used:   383100999 f 0.17840
 VIEW: Process will block for I/O
 VIEW:           random number (raw, type, value used:   858300821 i       2
 VIEW: Process editor moved to CPU
-VIEW: process editor on CPU with remaining runtime 5 (out of 5)
-Process will not block for I/O
+VIEW: process editor on CPU with remaining runtime 5 (out of 5) Process will not block for I/O
 VIEW: process editor on CPU; leaving function for ready queue
 RUN I/O QUEUE --------------------------------------------
 VIEW: Entering function for I/O queue
 VIEW: both I/O device and I/O queue empty; leaving function for I/O queue
+
+
 TICK = 2 --------------------------------------------
 RUN READY QUEUE --------------------------------------------
 VIEW: Entering function for ready queue
@@ -27,6 +28,8 @@ RUN I/O QUEUE --------------------------------------------
 VIEW: Entering function for I/O queue
 VIEW: I/O device idle and process editor on I/O queue but at same tick as on CPUl ignore
 VIEW:           I/O device idle time is 2, busy time is 0
+
+
 TICK = 3 --------------------------------------------
 RUN READY QUEUE --------------------------------------------
 VIEW: Entering function for ready queue
@@ -51,6 +54,8 @@ VIEW: I/O device idle and process editor on I/O queue so loaded onto I/O devicen
 VIEW: I/O device idle and process editor on I/O queue; load it into I/O device
 VIEW: process editor has 21 time units on I/O device
 VIEW: process editor on I/O; leaving function for I/O  queue
+
+
 TICK = 4 --------------------------------------------
 RUN READY QUEUE --------------------------------------------
 VIEW: Entering function for ready queue
@@ -60,6 +65,8 @@ RUN I/O QUEUE --------------------------------------------
 VIEW: Entering function for I/O queue
 VIEW: process editor has 20 time units on I/O device
 VIEW: process editor on I/O; leaving function for I/O  queue
+
+
 TICK = 5 --------------------------------------------
 RUN READY QUEUE --------------------------------------------
 VIEW: Entering function for ready queue
@@ -78,6 +85,8 @@ RUN I/O QUEUE --------------------------------------------
 VIEW: Entering function for I/O queue
 VIEW: process editor has 19 time units on I/O device
 VIEW: process editor on I/O; leaving function for I/O  queue
+
+
 TICK = 6 --------------------------------------------
 RUN READY QUEUE --------------------------------------------
 VIEW: Entering function for ready queue
