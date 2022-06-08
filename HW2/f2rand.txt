@@ -1,0 +1,32 @@
+name     CPU time  when done  cpu disp  i/o disp  i/o time
+  383100999 f 0.17840
+  858300821 i       3
+  357768173 f 0.16660
+  455528251 i       2
+  133005921 f 0.06194
+  116285904 i       1
+  591987137 i      18
+editor          3          7         2         1         1
+  102557902 f 0.04776
+  689413528 i       2
+  585691128 i      19
+  789708827 i      18
+adventure       2         44         3         1        19
+compiler        5         62         4         2        36
+
+System:
+The wall clock time at which the simulation finished: 62
+
+CPU:
+Total time spent busy: 10
+Total time spent idle: 52
+CPU utilization: 0.16
+Number of dispatches: 9
+Overall throughput: 0.05
+
+I/O device:
+Total time spent busy: 56
+Total time spent idle: 6
+I/O utilization: 0.90
+Number of dispatches: 4
+Overall throughput: 0.05
